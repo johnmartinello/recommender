@@ -1,0 +1,2 @@
+This project is a movie recommendation system that leverages vector embeddings and similarity search to find movies similar to a given Natural Language query. The system processes a large dataset of movie information, generates embeddings for movie descriptions, and stores these embeddings in a TimescaleDB database. The project includes functionalities for data cleaning, embedding generation, batch processing, and similarity search. I'm building this project on top of Dave Ebbelaar youtube tutorial ([link](https://www.youtube.com/watch?v=hAdEuDBN57g)).
+
