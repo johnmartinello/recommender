@@ -10,34 +10,27 @@ def search_movies(queries: List[Dict[str, str]]) -> None:
     Search for movies based on a list of query parameters.
     Each query should contain: title, overview, genres, keywords
     """
-    # Configure logging
     logging.basicConfig(
         level=logging.INFO,
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     )
     logger = logging.getLogger(__name__)
     
-    # Instantiate VectorStore
     vector_store = VectorStore()
     
-    # Default time range
     time_range = (
         datetime(1970, 1, 1),
         datetime(2024, 12, 31)
     )
     
-    # Process each query
     for query in queries:
         logger.info(f"\nSearching for movies similar to: {query['title']}")
         
-        # Prepare metadata filter
         metadata_filter = {
             "genres": query.get('genres', ''),
             "keywords": query.get('keywords', '')
         }
         
-        # Perform the search
-
         conn = psycopg2.connect(
             dbname="postgres",
             user="postgres",
@@ -54,7 +47,6 @@ def search_movies(queries: List[Dict[str, str]]) -> None:
             time_range=time_range,
         )
         
-        # Display results
         logger.info(f"Results for query: {query['title']}")
         for result in results:
             print(f"Title: {result[1]['title']}")
@@ -63,7 +55,6 @@ def search_movies(queries: List[Dict[str, str]]) -> None:
         print("-------------------------------")
 
 def main():
-    # Example queries
     queries = [
         {
             "title": "",

@@ -18,7 +18,7 @@ class MovieVectorDB:
         """Load and clean the movie dataset."""
         try:
             df = pd.read_csv(self.csv_path, sep=",")
-            # Drop rows where overview is null or not a string
+            
             df = df.dropna(subset=['overview'])
             df = df[df['overview'].apply(lambda x: isinstance(x, str))]
 
@@ -56,15 +56,15 @@ class MovieVectorDB:
         """Transform a row into the format expected by TimescaleVector."""
         try:
 
-            # Handle release date with validation
-            release_date = datetime.now(timezone.utc)  # default fallback
+            
+            release_date = datetime.now(timezone.utc) 
             if pd.notna(row['release_date']):
                 try:
                     release_date = pd.to_datetime(row['release_date']).tz_localize('UTC')
                 except (ValueError, TypeError) as e:
                     self.logger.warning(f"Invalid date format for movie: {row.get('title', 'Unknown')}, using current time")
             
-            # Create metadata as dictionary first
+            
             metadata = {
                 "title": str(row.get('title', '')).strip(), 
                 "movie_id": str(row.get('id', '')).strip(),
@@ -113,11 +113,10 @@ class MovieVectorDB:
     def setup_database(self):
         """Set up the vector database with movie data."""
         try:
-            # Load records from CSV
+            
             records_df = self.load_and_clean_data()
             records_df = self.process_batch(records_df)
             
-            # Create tables and insert data
             self.vec_store.create_tables()
             self.vec_store.create_index()
             
@@ -130,13 +129,11 @@ class MovieVectorDB:
             raise
 
 def main():
-    # Configure logging
     logging.basicConfig(
         level=logging.INFO,
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     )
     
-    # Initialize and run
     movie_db = MovieVectorDB("D:/recommender/data/tmdb.csv")
     movie_db.setup_database()
 

@@ -39,14 +39,11 @@ class VectorStore:
         if not hasattr(self, 'model'):
             self.model = SentenceTransformer(self.settings.local.path_model)
             self.model.to(self.settings.local.device)
-
-        # Preprocess text
         
         text = text.replace("\n", " ")
         
         start_time = time.time()
         
-        # Generate embedding
         with torch.no_grad():
             embedding = self.model.encode(
                 [text],
@@ -55,8 +52,7 @@ class VectorStore:
                 batch_size=32,
                 show_progress_bar=False
             )
-            # Convert to list and move to CPU if needed
-            embedding = embedding[0].cpu().numpy().tolist()
+            embedding = embedding[0].numpy().tolist()
         
         elapsed_time = time.time() - start_time
         logging.info(f"Embedding generated in {elapsed_time:.3f} seconds")
