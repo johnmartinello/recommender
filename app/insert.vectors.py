@@ -1,7 +1,6 @@
-from datetime import datetime, timezone
+from database.vector_db import VectorDB
 import pandas as pd
-from database.vector_store import VectorStore
-from timescale_vector.client import uuid_from_time
+from datetime import datetime, timezone
 import logging
 import json
 import ast
@@ -11,7 +10,7 @@ class MovieVectorDB:
     def __init__(self, csv_path):
         """Initialize the MovieVectorDB with path to CSV file."""
         self.csv_path = csv_path
-        self.vec_store = VectorStore()
+        self.vec_db = VectorDB()
         self.logger = logging.getLogger(__name__)
         
     def load_and_clean_data(self):
@@ -53,38 +52,37 @@ class MovieVectorDB:
             raise
             
     def prepare_record(self, row):
-        """Transform a row into the format expected by TimescaleVector."""
+        """Transform a row into the format expected by pgvector."""
         try:
-
-            
-            release_date = datetime.now(timezone.utc) 
+            release_date = datetime.now(timezone.utc).strftime('%Y-%m-%d')
             if pd.notna(row['release_date']):
                 try:
-                    release_date = pd.to_datetime(row['release_date']).tz_localize('UTC')
+                    release_date = pd.to_datetime(row['release_date']).tz_localize('UTC').strftime('%Y-%m-%d')
                 except (ValueError, TypeError) as e:
                     self.logger.warning(f"Invalid date format for movie: {row.get('title', 'Unknown')}, using current time")
             
+            title = str(row.get('title', '')).strip()
             
             metadata = {
-                "title": str(row.get('title', '')).strip(), 
                 "movie_id": str(row.get('id', '')).strip(),
                 "genres": str(row.get('genres', '')),
                 "popularity": row.get('popularity', 0.0),
+                "release_date": release_date,
                 "poster_path": str(row.get('poster_path', '')).strip(),
                 "production_companies": str(row.get('production_companies', '')),
                 "production_countries": str(row.get('production_countries', '')),
                 "original_language": str(row.get('original_language', '')).strip(),
                 "keywords": str(row.get('keywords', '')),
-                
-                "created_at": release_date.isoformat()
             }
 
-            embedding = self.vec_store.get_embedding_local(row['overview'])
+            contents = str(row.get('overview', '')).strip()
+            embedding = self.vec_db.get_embedding_local(contents)
+
             return {
-                "id": str(uuid_from_time(release_date)),
-                "metadata": metadata, 
-                "contents": str(row['overview']).strip(),  
-                "embedding": embedding,
+                "metadata": json.dumps(metadata),
+                "title":title,
+                "contents": contents,
+                "embedding": embedding
             }
         except Exception as e:
             self.logger.error(f"Error preparing record: {str(e)}")
@@ -115,13 +113,14 @@ class MovieVectorDB:
         try:
             
             records_df = self.load_and_clean_data()
+            
             records_df = self.process_batch(records_df)
-            
-            self.vec_store.create_tables()
-            self.vec_store.create_index()
-            
-            self.vec_store.upsert(records_df)
-            self.logger.info("Successfully inserted data into vector store")
+
+            self.vec_db.create_tables()
+            self.vec_db.create_index()
+
+            self.vec_db.upsert(records_df)
+            self.logger.info("Successfully inserted data into vector db")
             
             return True
         except Exception as e:
@@ -134,7 +133,8 @@ def main():
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     )
     
-    movie_db = MovieVectorDB("D:/recommender/data/tmdb.csv")
+
+    movie_db = MovieVectorDB("D:/projetos/recommender/data/tmdb.csv")
     movie_db.setup_database()
 
 if __name__ == "__main__":

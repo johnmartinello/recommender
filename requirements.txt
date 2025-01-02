@@ -1,6 +1,6 @@
 pandas
-openai
 psycopg
 python-dotenv
-timescale-vector
 instructor
+sentence_transformers
+torch

@@ -49,26 +49,29 @@ class LocalModelSettings(LLMSettings):
 class DatabaseSettings(BaseModel):
     """Database connection settings."""
 
-    service_url: str = Field(default_factory=lambda: os.getenv("TIMESCALE_SERVICE_URL"))
+    service_url: str = Field(default_factory=lambda: os.getenv("SERVICE_URL"))
 
 
-class VectorStoreSettings(BaseModel):
-    """Settings for the VectorStore."""
+class VectorDBSettings(BaseModel):
+    """Settings for the VectorDB."""
 
     table_name: str = "embeddings"
     embedding_dimensions: int = 768
-    time_partition_interval: timedelta = timedelta(days=7)
     
 
 class Settings(BaseModel):
     local: LocalModelSettings = Field(default_factory=LocalModelSettings)
     database: DatabaseSettings = Field(default_factory=DatabaseSettings)
-    vector_store: VectorStoreSettings = Field(default_factory=VectorStoreSettings)
+    vector_db: VectorDBSettings = Field(default_factory=VectorDBSettings)
 
 @lru_cache()
 def get_settings() -> Settings:
     """Create and return a cached instance of the Settings."""
-    load_dotenv(dotenv_path="./.env")
+    env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env')
+
+    load_dotenv(dotenv_path=env_path)
+    
     settings = Settings()
     setup_logging()
     return settings
+

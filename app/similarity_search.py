@@ -1,71 +1,58 @@
-# similarity_search.py
+from typing import Dict, Optional
 import psycopg2
 import logging
-from datetime import datetime
-from database.vector_store import VectorStore
-from typing import List, Dict
+from database.vector_db import VectorDB
 
-def search_movies(queries: List[Dict[str, str]]) -> None:
-    """
-    Search for movies based on a list of query parameters.
-    Each query should contain: title, overview, genres, keywords
-    """
+conn = psycopg2.connect(
+        dbname="postgres",
+        user="postgres",
+        password="123",
+        host="localhost",
+        port="5432"
+        )
+
+def search_movies(
+    query: str,
+    metadata: Optional[Dict] = None
+    ):
+    
+    logger = logging.getLogger(__name__)
+    vector_db = VectorDB()
+
+    if metadata and "time_range" in metadata:
+        try:
+            start_year, end_year = map(int, metadata["time_range"].split('-'))
+            metadata["time_range"] = (start_year, end_year)
+        except ValueError as e:
+            logger.error(f"Invalid time_range format: {metadata['time_range']}")
+            raise e
+
+    results = vector_db.search(
+        conn=conn,
+        query_text=query,
+        limit=5,
+        metadata=metadata,
+    )
+        
+    return results
+
+def main():
     logging.basicConfig(
         level=logging.INFO,
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     )
-    logger = logging.getLogger(__name__)
+    query = "A kid accidentally accesses the Pentagon servers"
+    metadata = {
+        "genres": "Family, Comedy",
+        "time_range": "1960-2020"
+    }
     
-    vector_store = VectorStore()
     
-    time_range = (
-        datetime(1970, 1, 1),
-        datetime(2024, 12, 31)
-    )
+    results = search_movies(query,metadata)
     
-    for query in queries:
-        logger.info(f"\nSearching for movies similar to: {query['title']}")
-        
-        metadata_filter = {
-            "genres": query.get('genres', ''),
-            "keywords": query.get('keywords', '')
-        }
-        
-        conn = psycopg2.connect(
-            dbname="postgres",
-            user="postgres",
-            password="123",
-            host="localhost",
-            port="5432"
-        )
+    for result in results:
+        print(f"{result[1]}, {result[4]}")
 
-        results = vector_store.search(
-            conn = conn,
-            query_text=query['overview'],
-            limit=5,
-            metadata_filter=metadata_filter,
-            time_range=time_range,
-        )
-        
-        logger.info(f"Results for query: {query['title']}")
-        for result in results:
-            print(f"Title: {result[1]['title']}")
-            print(f"Similarity: {result[3]:.3f}\n")
-        print()
-        print("-------------------------------")
-
-def main():
-    queries = [
-        {
-            "title": "",
-            "overview": "A kid accidentaly access the pentagon servers",
-            "genres": "",
-            "keywords": "kid, pentagon, hacker"
-        },
-   
-    ] 
-    
-    search_movies(queries)
 
 if __name__ == "__main__":
     main()
